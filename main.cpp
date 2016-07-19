@@ -12,6 +12,6 @@ int main() {
     VM temp;
     temp.load(code);
     temp.run();
-    
+
     return 0;
 }

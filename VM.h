@@ -14,10 +14,11 @@
 
 //OP-code mask
 #define OPCODE_BITMASK 0xFF00000000000000
+#define OPCODE_BITMASK_HIDE 0x00FFFFFFFFFFFFFF
 
 //Hex OPCODES
 //Movement instructions
-#define MOV 0x88 //Moves data from one register to another
+#define MOV 0x88 //Moves data from second register to first
 #define PUSH 0xFF //Pushes operand to stack memory and increments the ESP
 #define POP 0x5F //Removes from stack and decreses ESP
 #define LEA 0x8D //Load effective address (pointers)
@@ -50,16 +51,56 @@
 #define RET 0xC3 //Subroutine return
 #define EXIT_CODE 0xFD //Using STD op-code for this
 
+//EFLAGS register flags
+#define EFLAGS_CF 0x00 //Carry flag
+#define EFLAGS_PF 0x02 //Parity flag
+#define EFLAGS_AF 0x04 //Auxiliary carry flag
+#define EFLAGS_ZF 0x06 //Zero flag
+#define EFLAGS_SF 0x07 //Sign flag
+#define EFLAGS_TF 0x08 //Trap flag
+#define EFLAGS_IF 0x09 //Interrupt enable flag
+#define EFLAGS_DF 0x0A //Direction flag
+#define EFLAGS_OF 0x0B //Overflow flag
+#define EFLAGS_IOPL0 0x0C //I/O priveledge level
+#define EFLAGS_IOPL1 0x0D //I/O priveledge level
+#define EFLAGS_NT 0x0E //Nested task flag
+#define EFLAGS_RF 0x10 //Resume flag
+#define EFLAGS_VM 0x11 //Virtual 8086 mode flag
+#define EFLAGS_AC 0x12 //Alignment check flag
+#define EFLAGS_VIF 0x13 //Virtual interrupt flag
+#define EFLAGS_VIP 0x14 //Virtual interrupt pending flag
+#define EFLAGS_ID 0x15 //ID flag
+
 #include <cstdint>
 
 class VM {
 private:
-    uint8_t ESP; //Grows up (as opposed to x86 which grows down)
     uint64_t codeMemory[PROGRAM_SPACE]; //Where the program is stored currently it has 64 kilobits
     uint64_t stackMemory[STACK_SPACE]; //Stack address which has 64 kilobits
     uint64_t heapMemory[HEAP_SPACE]; //Where temp variables and virtual data goes
     uint64_t metadataStack[STACK_SPACE]; //Defines data types for stack
     uint64_t metadataHeap[HEAP_SPACE]; //Defines the data types for heap
+
+    //Registers
+    //General
+    uint32_t EAX, EBX, ECX, EDX;
+    uint16_t AX, BX, CX, DX;
+    uint8_t AH, AL, BH, BL, CH, CL, DH, DL;
+
+    //Segment
+    uint16_t CS; //Code segment holder
+    uint16_t DS; //Data segment holder
+    uint16_t ES, FS, GS; //Extra registers
+    uint16_t SS; //Stack segment being accessed
+
+    //Indexes and pointers
+    uint16_t EDI; //Destination index register used for string, memory array copying and setting
+    uint16_t ESI; //Source index register used for string and memory array copying
+    uint16_t ESP; //Grows up (as opposed to x86 which grows down)
+    uint16_t EIP; //Index pointer holds offset for next instruction
+
+    //Special register
+    uint32_t EFLAGS;
 public:
     void load(uint64_t code[]); //Loads program into the code
     void run(); //Runs the program
