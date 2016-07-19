@@ -16,6 +16,53 @@
 #define OPCODE_BITMASK 0xFF00000000000000
 #define OPCODE_BITMASK_HIDE 0x00FFFFFFFFFFFFFF
 
+//Instruction masks (Finding the type of instruction so like REG -> REG or MEM -> MEM)
+#define INSTRUCTION_GET_MASK 0xFF //For hiding the instruction and allowing the type to be seen
+#define REG_REG 0x00 //If it is a register to register type instruction
+#define REG_LIT 0x01 //If it is a literal to register type instruction
+#define REG_MEM 0x02 //If it is a memory to register type instruction
+#define MEM_REG 0x20 //If it is a register to memory type instruction
+#define MEM_LIT 0x21 //If it is a literal to memory type instruction
+#define MEM_MEM 0x22 //If it is a memory to memory type instruction
+
+//Register hex addresses
+//32-bit
+#define EAX_ADDRESS 0x1F48
+#define EBX_ADDRESS 0x1F49
+#define ECX_ADDRESS 0x1F4A
+#define EDX_ADDRESS 0x1F4B
+//16-bit
+#define AX_ADDRESS 0x1F4C
+#define BX_ADDRESS 0x1F4D
+#define CX_ADDRESS 0x1F4E
+#define DX_ADDRESS 0x1F4F
+//8-bit
+#define AH_ADDRESS 0x1F50
+#define AL_ADDRESS 0x1F51
+#define BH_ADDRESS 0x1F52
+#define BL_ADDRESS 0x1F53
+#define CH_ADDRESS 0x1F54
+#define CL_ADDRESS 0x1F55
+#define DH_ADDRESS 0x1F56
+#define DL_ADDRESS 0x1F57
+
+//Segment registers
+#define CS_ADDRESS 0x1F58
+#define DS_ADDRESS 0x1F59
+#define ES_ADDRESS 0x1F5A
+#define FS_ADDRESS 0x1F5B
+#define GS_ADDRESS 0x1F5C
+#define SS_ADDRESS 0x1F5D
+
+//Indexes and pointer registers
+#define EDI_ADDRESS 0x1F5E
+#define ESI_ADDRESS 0x1F5F
+#define ESP_ADDRESS 0x1F60
+#define EIP_ADDRESS 0x1F61
+
+//EFLAGS register address
+#define EFLAGS_ADDRESS 0x1F62
+
 //Hex OPCODES
 //Movement instructions
 #define MOV 0x88 //Moves data from second register to first
@@ -101,6 +148,10 @@ private:
 
     //Special register
     uint32_t EFLAGS;
+
+    //Special functions to simplify coding
+    void readReg(uint64_t& temp);
+    void writeReg(uint64_t& temp);
 public:
     void load(uint64_t code[]); //Loads program into the code
     void run(); //Runs the program
