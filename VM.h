@@ -25,6 +25,11 @@
 #define MEM_LIT 0x21 //If it is a literal to memory type instruction
 #define MEM_MEM 0x22 //If it is a memory to memory type instruction
 
+//Data Size
+#define BIT32_SIZE 0x20
+#define BIT16_SIZE 0x10
+#define BIT8_SIZE 0x08
+
 //Register hex addresses
 //32-bit
 #define EAX_ADDRESS 0x1F48
@@ -150,8 +155,12 @@ private:
     uint32_t EFLAGS;
 
     //Special functions to simplify coding
-    void readReg(uint64_t& temp);
+    void readReg(uint8_t &data, uint64_t& temp);
     void writeReg(uint64_t& temp);
+    void readMem(uint8_t &data);
+    void writeMem(uint8_t &data, uint64_t& temp);
+    void getMetaDataStack(uint8_t& data);
+    void writeMetaDataStack(uint8_t& data, uint64_t& temp);
 public:
     void load(uint64_t code[]); //Loads program into the code
     void run(); //Runs the program
