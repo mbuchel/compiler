@@ -1,1 +1,1 @@
-Playing around with making a compiler and vm for the compiler to generate code for
+Decided to work on making a compiler for a prebuilt VM to learn the compilation process more and potentially get deeper insights
