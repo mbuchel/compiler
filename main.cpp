@@ -1,20 +1,64 @@
-//Using this for testing purposes
+//Changed the whole compiler idea to first interpretation
 
-#include "Parser.h" //For parsing the data & making the AST
-#include "Processor.h" //For processing the data
-#include "Error.h" //For error checking
+#include <iostream>
+#include <fstream>
 
-int main() {
-    //Variables for AST
-    nodeAST *code;
+#include "Stack.h"
+//#include "AST.h"
 
-    //If error in code to say error
-    //getNextToken();
-    if (!parser::parse(&code))
-        Error::error("No top level expression");
+using std::cout;
+using std::cin;
+using std::endl;
+using std::ifstream;
+using std::string;
 
-    //Run code
-    Processor::process(code);
+void FAILURE(string exitMessage);
+void bracketCheck(string filename);
 
-    return 0;
+
+int main()
+{
+  string filename;
+
+  cout << "Enter your filename: ";
+  cin >> filename;
+  
+  bracketCheck(filename);
+  
+  return 0;
+}
+
+void FAILURE(string exitMessage)
+{
+  cout << exitMessage;
+  exit(EXIT_FAILURE);
+}
+
+void bracketCheck(string filename)
+{
+  ifstream file(filename);
+  char c;
+  stack tester;
+  
+  while(file.get(c))
+    switch(c) {
+    case '(':
+      tester.push('a');
+      break;
+    case ')':
+      if (tester.empty())
+	FAILURE("\n\nToo many ) brackets\n\n");
+      tester.pop();
+      break;
+    default:
+      break;
+    }
+
+  if (!file.eof())
+    FAILURE("\n\nError reading file\n\n");
+
+  if (!tester.empty())
+    FAILURE("\n\nToo many ( brackets\n\n");
+
+  file.close();
 }

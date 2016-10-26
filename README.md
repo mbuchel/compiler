@@ -1,1 +1,0 @@
-Decided to work on making a compiler for a prebuilt VM to learn the compilation process more and potentially get deeper insights
