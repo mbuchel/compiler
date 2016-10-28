@@ -1,6 +1,6 @@
 debug:
-	g++ -g3 *.cpp -o compiler
+	gcc -g3 *.c -o compiler
 all:
-	g++ *.cpp -o compiler
+	gcc *.c -o compiler
 clean:
 	rm compiler
