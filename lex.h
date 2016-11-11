@@ -5,6 +5,13 @@ struct AST_node {
 	struct AST_node *left, *right;
 };
 
+struct AVL_tree {
+	int hash;
+	int level;
+
+	struct AVL_tree *left, *right;
+};
+
 struct _stack {
 	char value;
 	struct _stack* next;
@@ -19,6 +26,7 @@ typedef struct _stack stack;
 typedef stack* stack_p;
 typedef struct __token _token;
 
+extern struct AVL_tree avl_functions;
 extern struct AST_node* code_point;
 extern int counter;
 extern _token token;

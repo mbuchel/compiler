@@ -3,11 +3,13 @@
 #include "lex.h"
 #include "error.h"
 
+#define SIZE_AST 500
+
 _token token;
 int counter = 0;
 int hash;
-
-struct AST_node* code_point = (struct AST_node*)malloc(500*sizeof(struct AST_node));
+struct AST_node* code_point = NULL;
+struct AVL_tree avl_functions = {-1, 0, NULL, NULL};
 
 short is_whitespace(char check)
 {
@@ -24,6 +26,47 @@ short is_whitespace(char check)
 void add_to_AST()
 {
 	//TODO: add to abstract syntax tree
+	if (code_point == NULL)
+		code_point = malloc(SIZE_AST*sizeof(struct AST_node));
+}
+
+void add_to_avl()
+{
+	int level = 1;
+
+	if (avl_functions.hash == -1) {
+		avl_functions.hash = hash;
+		goto exit_add;
+	}
+
+	struct AVL_tree* avl_temp;
+
+	if (avl_functions.hash < hash) {
+		avl_temp = avl_functions.left;
+	} else if (avl_functions.hash > hash) {
+		avl_temp = avl_functions.right;
+	}
+
+	if (avl_temp == NULL)
+		goto exit_add;
+
+	do {
+		++level;
+
+		if (avl_temp->hash == hash)
+			goto exit_add;
+
+		if (avl_temp->hash < hash)
+			avl_temp = avl_temp->left;
+		else
+			avl_temp = avl_temp->right;
+	} while (avl_temp != NULL);
+
+exit_add:
+	avl_temp = malloc(sizeof(struct AVL_tree));
+	avl_temp->hash = hash;
+	avl_temp->level = level;
+	return;
 }
 
 void user_functions()
@@ -32,10 +75,36 @@ void user_functions()
 	 * AVL tree for hashes added already
 	 * for fast searching at this stage
 	 */
-	//TODO: make transverse of AVL
+	if (avl_functions.hash == -1)
+		error("AVL tree for hash values empty\n");
+
+	struct AVL_tree* avl_temp;
+
+	if (avl_functions.hash < hash) {
+		avl_temp = avl_functions.left;
+	} else if (avl_functions.hash > hash) {
+		avl_temp = avl_functions.right;
+	} else if (avl_functions.hash == hash) {
+		goto exit_functions;
+	}
+
+	while (avl_temp != NULL) {
+		if (avl_temp->hash == hash)
+			goto exit_functions;
+
+		if (avl_temp->hash < hash)
+			avl_temp = avl_temp->left;
+		else
+			avl_temp = avl_temp->right;
+	}
+
+	error("Function called without being defined, recall to do all your defuncs at the end\n");
+
+exit_functions:
+	return;
 }
 
-void LZW_compress_stack(const stack& command)
+void compress_stack(stack *command)
 {
 	/*
 	 * Compresses each char and adds it to
@@ -43,39 +112,35 @@ void LZW_compress_stack(const stack& command)
 	 */
 	hash = 0;
 
-	stack* next = &command;
+	stack* next = command;
 
 	do {
-		/*
-		 * LZW encoding Code
-		 *
-		 * All caps and Ascii -0x41
-		 */
 		hash += toupper(next->value)-0x41;
 
 		next = next->next;
 	} while (next->next != NULL);
 }
 
-int hash_stack(const stack& command)
+void rebalance_avl()
+{
+	//TODO: rebalance AVL
+}
+
+int hash_stack(stack *command)
 {
 	/*
-	 * Compresses the string (LZW)
+	 * Compresses the string (Form of LZW)
 	 * then hashes the string value
 	 * then returns 1 if the hash function worked
-	 *
-	 * The LZW is just showing off that I know
-	 * that algorithm, in reality it is about as good
-	 * to just add all the numbers together
 	 */
-	LZW_compress_stack(&command);
+	compress_stack(command);
 
 	/* 
 	 * Same hash from general_hash,
 	 * this can cause problems for big
 	 * programs
 	 */
-	hash = ((101*hash+7) % 997) % 500;
+	hash = ((101*hash+7) % 997) % SIZE_AST;
 
 	switch (hash) {
 	case 0x40:
@@ -88,6 +153,8 @@ int hash_stack(const stack& command)
 		return 0;
 	}
 
+	add_to_avl();
+	rebalance_avl();
 	return 1;
 }
 
@@ -98,7 +165,7 @@ void general_hash()
 	 * 3 random prime numbers were used
 	 * to prevent collisions
 	 */
-	hash = ((101*token.repr+7) % 997) % 500;
+	hash = ((101*token.repr+7) % 997) % SIZE_AST;
 
 	/*
 	 * Checks if the hash is an approved function
@@ -206,7 +273,7 @@ void standard_coms(char check)
 			token.repr = '+';
 
 			general_hash();
-			goto exit;
+			goto exit_standard;
 		} else if (stack_size == 10) {
 			next = command.next;
 			stack_size = 0;
@@ -277,7 +344,7 @@ void standard_coms(char check)
 			token.repr = 'p';
 
 			general_hash();
-			goto exit;
+			goto exit_standard;
 		} else if (stack_size == 3) {
 			next = command.next;
 			stack_size = 0;
@@ -314,7 +381,7 @@ void standard_coms(char check)
 			token.repr = 's';
 
 			general_hash();
-			goto exit;
+			goto exit_standard;
 		}
 
 		++counter;
@@ -323,9 +390,9 @@ void standard_coms(char check)
 			error("Cannot hash the stack\n");
 		}
 
-		user_commands();
+		user_functions();
 
-		exit:
+exit_standard:
 		add_to_AST();
 		return;
 	}
