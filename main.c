@@ -49,9 +49,13 @@ void load_program(char *array, int size)
 	while (array[++size] != ')') {
 		if (is_whitespace(array[size])) {
 			++counter;
-			standard_coms("\0");
+			standard_coms('\0');
 
 			continue;
+		}
+
+		if (counter < 2) {
+			standard_coms(array[size]);
 		}
 
 		array[size] = ' ';
