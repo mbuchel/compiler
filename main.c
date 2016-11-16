@@ -10,8 +10,10 @@
 
 #define ARRAY_SIZE 1000
 
-// Checks to make sure the code is
-// syntaxtically correct
+/* 
+ * Checks to make sure the code is
+ * syntaxtically correct
+ */
 int check_layer_1(char *array)
 {
 	int i = 0;
@@ -47,6 +49,7 @@ void load_program(char *array, int size)
 	array[size] = ' ';
 
 	while (array[++size] != ')') {
+		printf("%c\n",array[size]);
 		if (is_whitespace(array[size])) {
 			++counter;
 			standard_coms('\0');

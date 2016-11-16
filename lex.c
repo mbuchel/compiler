@@ -1,15 +1,14 @@
+#include <pthread.h>
 #include <ctype.h>
 
 #include "lex.h"
 #include "error.h"
 
-#define SIZE_AST 500
-
 _token token;
 int counter = 0;
 int hash;
-struct AST_node* code_point = NULL;
-struct AVL_tree avl_functions = {-1, 0, NULL, NULL};
+struct AST_node code_point[SIZE_AST];
+struct AVL_tree avl_functions = {-1, 0, NULL, NULL, NULL};
 
 short is_whitespace(char check)
 {
@@ -26,8 +25,6 @@ short is_whitespace(char check)
 void add_to_AST()
 {
 	//TODO: add to abstract syntax tree
-	if (code_point == NULL)
-		code_point = malloc(SIZE_AST*sizeof(struct AST_node));
 }
 
 void add_to_avl()
@@ -40,6 +37,9 @@ void add_to_avl()
 	}
 
 	struct AVL_tree* avl_temp;
+	struct AVL_tree* avl_parent;
+
+	avl_parent = &avl_functions;
 
 	if (avl_functions.hash < hash) {
 		avl_temp = avl_functions.left;
@@ -55,17 +55,22 @@ void add_to_avl()
 
 		if (avl_temp->hash == hash)
 			goto exit_add;
+		
+		avl_parent = avl_temp;
 
-		if (avl_temp->hash < hash)
+		if (avl_temp->hash < hash) {
 			avl_temp = avl_temp->left;
-		else
+		} else {
 			avl_temp = avl_temp->right;
+		}
 	} while (avl_temp != NULL);
 
-exit_add:
 	avl_temp = malloc(sizeof(struct AVL_tree));
 	avl_temp->hash = hash;
+	avl_temp->parent = avl_parent;
 	avl_temp->level = level;
+
+exit_add:
 	return;
 }
 
@@ -121,9 +126,33 @@ void compress_stack(stack *command)
 	} while (next->next != NULL);
 }
 
+void* max_tree(void *ptr)
+{
+	int max = *((struct multithreaded_AVL*)ptr)->level;
+	struct AVL_tree* tree = (struct AVL_tree*)((struct multithreaded_AVL*)ptr)->tree;
+
+	//TODO: transverse tree to find max distance
+	printf("%d\n", max);
+}
+
 void rebalance_avl()
 {
-	//TODO: rebalance AVL
+	int left_max, right_max;
+	int left_min, right_min;
+	pthread_t max_l, max_r;
+	pthread_t min_l, min_r;
+	int ret1, ret2, ret3, ret4;
+
+	struct multithreaded_AVL* sender;
+
+	// SEG FAULT SOMEWHERE HERE
+
+	ret1 = pthread_create(&max_l, NULL, max_tree, (void*) sender);
+	if (ret1) {
+		error("Error in thread 1");
+	}
+
+	pthread_join(max_l, NULL);
 }
 
 int hash_stack(stack *command)
@@ -188,6 +217,19 @@ void general_hash()
 	}
 }
 
+void test()
+{
+	int i;
+
+	for (i = 0; i < 100; ++i) {
+		hash = ((101*i+7) % 997) % 500;
+		printf("%d\n", hash);
+		add_to_avl();
+	}
+
+	rebalance_avl();
+}
+
 void standard_coms(char check)
 {
 	static int stack_size = 0;
@@ -197,7 +239,7 @@ void standard_coms(char check)
 	if (check == '+' || check == '-' || check == '*' || check == '/') {
 		token.type = 0;
 		token.repr = check;
-
+		test();
 		general_hash();
 	} else if (!counter) {
 		if (command.next == NULL) {
@@ -219,7 +261,7 @@ void standard_coms(char check)
 			++stack_size;
 			next = next->next;
 		}
-	} else if (counter == 1) {
+	} else if (counter == 1 && !is_whitespace(check)) {
 		int com_check;
 
 		if (stack_size == 6) {
