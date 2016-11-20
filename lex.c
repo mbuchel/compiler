@@ -8,7 +8,7 @@ _token token;
 int counter = 0;
 int hash;
 struct AST_node code_point[SIZE_AST];
-struct AVL_tree avl_functions = {-1, 0, NULL, NULL, NULL};
+struct BS_tree bs_functions = {-1, 0, NULL, NULL, NULL};
 
 short is_whitespace(char check)
 {
@@ -27,48 +27,48 @@ void add_to_AST()
 	//TODO: add to abstract syntax tree
 }
 
-void add_to_avl()
+void add_to_bst()
 {
 	int level = 1;
 
-	if (avl_functions.hash == -1) {
-		avl_functions.hash = hash;
+	if (bs_functions.hash == -1) {
+		bs_functions.hash = hash;
 		goto exit_add;
 	}
 
-	struct AVL_tree* avl_temp;
-	struct AVL_tree* avl_parent;
+	struct BS_tree* bs_temp;
+	struct BS_tree* bs_parent;
 
-	avl_parent = &avl_functions;
+	bs_parent = &bs_functions;
 
-	if (avl_functions.hash < hash) {
-		avl_temp = avl_functions.left;
-	} else if (avl_functions.hash > hash) {
-		avl_temp = avl_functions.right;
+	if (bs_functions.hash < hash) {
+		bs_temp = bs_functions.left;
+	} else if (bs_functions.hash > hash) {
+		bs_temp = bs_functions.right;
 	}
 
-	if (avl_temp == NULL)
+	if (bs_temp == NULL)
 		goto exit_add;
 
 	do {
 		++level;
 
-		if (avl_temp->hash == hash)
+		if (bs_temp->hash == hash)
 			goto exit_add;
 		
-		avl_parent = avl_temp;
+		bs_parent = bs_temp;
 
-		if (avl_temp->hash < hash) {
-			avl_temp = avl_temp->left;
+		if (bs_temp->hash < hash) {
+			bs_temp = bs_temp->left;
 		} else {
-			avl_temp = avl_temp->right;
+			bs_temp = bs_temp->right;
 		}
-	} while (avl_temp != NULL);
+	} while (bs_temp != NULL);
 
-	avl_temp = malloc(sizeof(struct AVL_tree));
-	avl_temp->hash = hash;
-	avl_temp->parent = avl_parent;
-	avl_temp->level = level;
+	bs_temp = malloc(sizeof(struct BS_tree));
+	bs_temp->hash = hash;
+	bs_temp->parent = bs_parent;
+	bs_temp->level = level;
 
 exit_add:
 	return;
@@ -77,30 +77,32 @@ exit_add:
 void user_functions()
 {
 	/*
-	 * AVL tree for hashes added already
-	 * for fast searching at this stage
+	 * BST for functions added already
+	 * for fast searching, switched from
+	 * AVL due to mistery bug which I may
+	 * solve later
 	 */
-	if (avl_functions.hash == -1)
-		error("AVL tree for hash values empty\n");
+	if (bs_functions.hash == -1)
+		error("BST for hash values empty\n");
 
-	struct AVL_tree* avl_temp;
+	struct BS_tree* bs_temp;
 
-	if (avl_functions.hash < hash) {
-		avl_temp = avl_functions.left;
-	} else if (avl_functions.hash > hash) {
-		avl_temp = avl_functions.right;
-	} else if (avl_functions.hash == hash) {
+	if (bs_functions.hash < hash) {
+		bs_temp = bs_functions.left;
+	} else if (bs_functions.hash > hash) {
+		bs_temp = bs_functions.right;
+	} else if (bs_functions.hash == hash) {
 		goto exit_functions;
 	}
 
-	while (avl_temp != NULL) {
-		if (avl_temp->hash == hash)
+	while (bs_temp != NULL) {
+		if (bs_temp->hash == hash)
 			goto exit_functions;
 
-		if (avl_temp->hash < hash)
-			avl_temp = avl_temp->left;
+		if (bs_temp->hash < hash)
+			bs_temp = bs_temp->left;
 		else
-			avl_temp = avl_temp->right;
+			bs_temp = bs_temp->right;
 	}
 
 	error("Function called without being defined, recall to do all your defuncs at the end\n");
@@ -109,60 +111,23 @@ exit_functions:
 	return;
 }
 
-void compress_stack(stack *command)
+int hash_stack(stack *command)
 {
 	/*
-	 * Compresses each char and adds it to
-	 * the hash value
+	 * Karp-Rabin prehash
+	 *
+	 * because this allows a fast hashing
+	 * of a string
 	 */
-	hash = 0;
+	hash = 1;
 
 	stack* next = command;
 
 	do {
-		hash += toupper(next->value)-0x41;
+		hash = (hash << 1) + next->value - 0x41;
 
 		next = next->next;
 	} while (next->next != NULL);
-}
-
-void* max_tree(void *ptr)
-{
-	int max = *((struct multithreaded_AVL*)ptr)->level;
-	struct AVL_tree* tree = (struct AVL_tree*)((struct multithreaded_AVL*)ptr)->tree;
-
-	//TODO: transverse tree to find max distance
-	printf("%d\n", max);
-}
-
-void rebalance_avl()
-{
-	int left_max, right_max;
-	int left_min, right_min;
-	pthread_t max_l, max_r;
-	pthread_t min_l, min_r;
-	int ret1, ret2, ret3, ret4;
-
-	struct multithreaded_AVL* sender;
-
-	// SEG FAULT SOMEWHERE HERE
-
-	ret1 = pthread_create(&max_l, NULL, max_tree, (void*) sender);
-	if (ret1) {
-		error("Error in thread 1");
-	}
-
-	pthread_join(max_l, NULL);
-}
-
-int hash_stack(stack *command)
-{
-	/*
-	 * Compresses the string (Form of LZW)
-	 * then hashes the string value
-	 * then returns 1 if the hash function worked
-	 */
-	compress_stack(command);
 
 	/* 
 	 * Same hash from general_hash,
@@ -178,12 +143,11 @@ int hash_stack(stack *command)
 	case 0x160:
 	case 0x9B:
 	case 0x16A:
-	case 0x16A0:
+	case 0x16B:
 		return 0;
 	}
 
-	add_to_avl();
-	rebalance_avl();
+	add_to_bst();
 	return 1;
 }
 
@@ -210,24 +174,11 @@ void general_hash()
 		break;
 	case 0x16A:
 		if (token.type)
-			hash = hash << 4;
+			++hash;
 		break;
 	default:
 		error("General hash was called for either a user function or the token was corrupt\n");
 	}
-}
-
-void test()
-{
-	int i;
-
-	for (i = 0; i < 100; ++i) {
-		hash = ((101*i+7) % 997) % 500;
-		printf("%d\n", hash);
-		add_to_avl();
-	}
-
-	rebalance_avl();
 }
 
 void standard_coms(char check)
@@ -239,7 +190,6 @@ void standard_coms(char check)
 	if (check == '+' || check == '-' || check == '*' || check == '/') {
 		token.type = 0;
 		token.repr = check;
-		test();
 		general_hash();
 	} else if (!counter) {
 		if (command.next == NULL) {
