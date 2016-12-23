@@ -1,8 +1,11 @@
-// The code was too spread out because I was
-// learning from a book I decided to just take
-// concepts and not the modules and implement
-// those
+/*
+ * The code was too spread out because I was
+ * learning from a book I decided to just take
+ * concepts and not the modules and implement
+ * those
+ */
 #include <stdio.h>
+#include <string.h>
 
 // Datatypes for the compiler use
 #include "lex.h"
@@ -40,28 +43,32 @@ int check_layer_1(char *array)
 	return i;
 }
 
+/*
+ * Loads the program into the ADT
+ */
 void load_program(char *array, int size)
 {
-	while (array[--size] != '(');
+	char *space_ptr = strchr(array, ' ');
+	size_t space;
+	size_t bracket = 0;
 
-	int newsize = size;
+	if (space_ptr == NULL)
+		error("No spaces in the program\n");
 
-	array[size] = ' ';
+	while (space_ptr != NULL) {
+		space = (size_t) (space_ptr - (array + bracket + 1)) / sizeof(unsigned char);
+		space_ptr = (char*) calloc(space, sizeof(unsigned char));
+		strncpy(space_ptr, array + bracket + 1, space);
+		standard_coms(space_ptr);
+		free(space_ptr);
 
-	while (array[++size] != ')') {
-		printf("%c\n",array[size]);
-		if (is_whitespace(array[size])) {
-			++counter;
-			standard_coms('\0');
+		space_ptr = strchr(array + bracket + 1, '(');
 
-			continue;
-		}
+		if (space_ptr == NULL)
+			break;
 
-		if (counter < 2) {
-			standard_coms(array[size]);
-		}
-
-		array[size] = ' ';
+		bracket = (size_t) (space_ptr - array) / sizeof(unsigned char);
+		space_ptr = strchr(array + bracket, ' ');
 	}
 }
 

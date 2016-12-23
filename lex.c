@@ -1,5 +1,7 @@
 #include <pthread.h>
 #include <ctype.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "lex.h"
 #include "error.h"
@@ -7,8 +9,14 @@
 _token token;
 int counter = 0;
 int hash;
+int val_for_i[7];
 struct AST_node code_point[SIZE_AST];
 struct BS_tree bs_functions = {-1, 0, NULL, NULL, NULL};
+struct multi_threaded_string {
+	char *string;
+	char *search;
+	int val;
+};
 
 short is_whitespace(char check)
 {
@@ -181,211 +189,87 @@ void general_hash()
 	}
 }
 
-void standard_coms(char check)
+void *multi_strcmp(void *input)
 {
-	static int stack_size = 0;
-	static stack command;
-	static stack_p next;
+	struct multi_threaded_string check = *(struct multi_threaded_string*) input;
 
-	if (check == '+' || check == '-' || check == '*' || check == '/') {
-		token.type = 0;
-		token.repr = check;
-		general_hash();
-	} else if (!counter) {
-		if (command.next == NULL) {
-			command.value = check;
-			command.next = (stack_p)malloc(sizeof(stack));
+	if (strcmp(check.string, check.search) == 0) {
+		val_for_i[check.val] = 1;
+		goto exit_multi_strcmp;
+	}
 
-			++stack_size;
-			if (!command.next)
-				error("No room to add to stack\n");
+	val_for_i[check.val] = 0;
 
-			next = command.next;
-		} else {
-			next->value = check;
-			next->next = (stack_p)malloc(sizeof(stack));
+exit_multi_strcmp:
+	return NULL;
+}
 
-			if (next->next == NULL)
-				error("No room to add to stack\n");
+/*
+ * Redid standard_coms to be more
+ * effective and multithreaded it
+ */
+void standard_coms(char *check)
+{
+	int i;
+	int keep_i = -1;
+	char *standards[7] = {
+		"+", "-", "*", "/",
+		"set", "defun",
+		"write-line"
+	};
 
-			++stack_size;
-			next = next->next;
-		}
-	} else if (counter == 1 && !is_whitespace(check)) {
-		int com_check;
+	struct multi_threaded_string input[7];
 
-		if (stack_size == 6) {
-			next = command.next;
-			stack_size = 0;
+	pthread_t pth[7];
 
-			do {
-				switch (stack_size) {
-				case 0:
-					if (next->value == 'd')
-						com_check = 1;
-					else
-						com_check = 0;
+	for (i = 0; i < 7; ++i) {
+		usleep(1);
+		input[i].string = check;
+		input[i].search = standards[i];
+		input[i].val = i;
+		if (pthread_create(&pth[i], NULL, multi_strcmp, (void*) &input[i]))
+			error("Thread creation error\n");
+	}
 
-					break;
-				case 1:
-					if (next->value != 'e')
-						com_check = 0;
+	for (i = 0; i < 7; ++i) {
+		pthread_join(pth[i], NULL);
+		if (val_for_i)
+			keep_i == i;
+	}
 
-					break;
-				case 2:
-					if (next->value != 'f')
-						com_check = 0;
-
-					break;
-				case 3:
-					if (next->value == 'u')
-						com_check = 0;
-
-					break;
-				case 4:
-					if (next->value == 'n')
-						com_check = 0;
-
-					break;
-				case 5:
-					if (next->value == 'c')
-						com_check = 0;
-
-					break;
-				}
-
-				if (com_check == 0)
-					break;
-
-				++stack_size;
-				next = next->next;
-			} while (next->next != NULL);
-
-			token.type = 1;
+	if (keep_i == -1) {
+		//TODO: add user functions
+	} else {
+		switch (keep_i) {
+		case 0:
+			token.type = 0;
 			token.repr = '+';
-
-			general_hash();
-			goto exit_standard;
-		} else if (stack_size == 10) {
-			next = command.next;
-			stack_size = 0;
-
-			do {
-				switch (stack_size) {
-				case 0:
-					if (next->value == 'w')
-						com_check = 1;
-					else
-						com_check = 0;
-
-					break;
-				case 1:
-					if (next->value != 'r')
-						com_check = 0;
-
-					break;
-				case 2:
-					if (next->value != 'i')
-						com_check = 0;
-
-					break;
-				case 3:
-					if (next->value != 't')
-						com_check = 0;
-
-					break;
-				case 4:
-					if (next->value != 'e')
-						com_check = 0;
-
-					break;
-				case 5:
-					if (next->value != '-')
-						com_check = 0;
-
-					break;
-				case 6:
-					if (next->value != 'l')
-						com_check = 0;
-
-					break;
-				case 7:
-					if (next->value != 'i')
-						com_check = 0;
-					break;
-				case 8:
-					if (next->value != 'n')
-						com_check = 0;
-
-					break;
-				case 9:
-					if (next->value != 'e')
-						com_check = 0;
-
-					break;
-				}
-
-				if (com_check == 0)
-					break;
-
-				++stack_size;
-				next = next->next;
-			} while (next->next != NULL);
-
-			token.type = 1;
-			token.repr = 'p';
-
-			general_hash();
-			goto exit_standard;
-		} else if (stack_size == 3) {
-			next = command.next;
-			stack_size = 0;
-
-			do {
-				switch (stack_size) {
-				case 0:
-					if (next->value == 's')
-						com_check = 1;
-					else
-						com_check = 0;
-
-					break;
-				case 1:
-					if (next->value != 'e')
-						com_check = 0;
-
-					break;
-				case 2:
-					if (next->value != 't')
-						com_check = 0;
-
-					break;
-				}
-
-				if (com_check == 0)
-					break;
-
-				++stack_size;
-				next = next->next;
-			} while (next->next != NULL);
-
+			break;
+		case 1:
+			token.type = 0;
+			token.repr = '-';
+			break; 
+		case 2:
+			token.type = 0;
+			token.repr = '*';
+			break;
+		case 3:
+			token.type = 0;
+			token.repr = '/';
+			break;
+		case 4:
 			token.type = 1;
 			token.repr = 's';
-
-			general_hash();
-			goto exit_standard;
+			break;
+		case 5:
+			token.type = 1;
+			token.repr = '+';
+			break;
+		case 6:
+			token.type = 1;
+			token.repr = 'p';
+			break;
 		}
-
-		++counter;
-
-		if (!hash_stack(&command)) {
-			error("Cannot hash the stack\n");
-		}
-
-		user_functions();
-
-exit_standard:
-		add_to_AST();
-		return;
+		general_hash();
 	}
 }

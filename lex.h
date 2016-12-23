@@ -33,4 +33,4 @@ extern struct AST_node code_point[SIZE_AST];
 extern int counter;
 extern _token token;
 extern short is_whitespace(char check);
-extern void standard_coms(char check);
+extern void standard_coms(char *check);
