@@ -113,52 +113,15 @@ void user_functions()
 			bs_temp = bs_temp->right;
 	}
 
-	error("Function called without being defined, recall to do all your defuncs at the end\n");
+	error("Function called without being defined\n");
 
 exit_functions:
 	return;
 }
 
-int hash_stack(stack *command)
-{
-	/*
-	 * Karp-Rabin prehash
-	 *
-	 * because this allows a fast hashing
-	 * of a string
-	 */
-	hash = 1;
-
-	stack* next = command;
-
-	do {
-		hash = (hash << 1) + next->value - 0x41;
-
-		next = next->next;
-	} while (next->next != NULL);
-
-	/* 
-	 * Same hash from general_hash,
-	 * this can cause problems for big
-	 * programs
-	 */
-	hash = ((101*hash+7) % 997) % SIZE_AST;
-
-	switch (hash) {
-	case 0x40:
-	case 0x105:
-	case 0x10A:
-	case 0x160:
-	case 0x9B:
-	case 0x16A:
-	case 0x16B:
-		return 0;
-	}
-
-	add_to_bst();
-	return 1;
-}
-
+/*
+ * Hash for default functions to make it easier
+ */
 void general_hash()
 {
 	/*
@@ -166,7 +129,7 @@ void general_hash()
 	 * 3 random prime numbers were used
 	 * to prevent collisions
 	 */
-	hash = ((101*token.repr+7) % 997) % SIZE_AST;
+	hash = ((101 * token.repr + 7) % 997) % SIZE_AST;
 
 	/*
 	 * Checks if the hash is an approved function
@@ -189,6 +152,58 @@ void general_hash()
 	}
 }
 
+/*
+ * Function name hasher
+ * to allow us to hash function
+ * names for faster lookup
+ */
+void hash_func(char *input)
+{
+	/*
+	 * Karp-Rabin rolling prehash
+	 *
+	 * to hash strings
+	 */
+	hash = 1;
+
+	char *temp = input;
+
+	while (*temp != '\0') {
+		hash = (hash << 1) + *temp - 0x41;
+		++temp;
+	}
+
+	/*
+	 * Same hash from the general hash
+	 * this can cause issues for larger
+	 * problems
+	 */
+	hash = ((101 * hash + 7) % 997) % SIZE_AST;
+
+	switch (hash) {
+	case 0x40:
+	case 0x105:
+	case 0x10A:
+	case 0x9B:
+	case 0x16A:
+	case 0x16B:
+		printf(input);
+		error("\nFunction makes the same hash as a default function please change\n");
+	}
+}
+
+/*
+ * Multi threaded string compare,
+ * I did this mainly to show off,
+ * in reality I could have used the
+ * Karp-Rabin algorithm to hash
+ * the string and just compare the
+ * hashes, of course this ends up
+ * in a bad case, where I have to
+ * make cryptographic hashing for
+ * default functions, which makes
+ * a few issues
+ */
 void *multi_strcmp(void *input)
 {
 	struct multi_threaded_string check = *(struct multi_threaded_string*) input;
@@ -233,12 +248,13 @@ void standard_coms(char *check)
 
 	for (i = 0; i < 7; ++i) {
 		pthread_join(pth[i], NULL);
-		if (val_for_i)
-			keep_i == i;
+		if (val_for_i[i])
+			keep_i = i;
 	}
 
 	if (keep_i == -1) {
-		//TODO: add user functions
+		hash_func(check);
+		user_functions();
 	} else {
 		switch (keep_i) {
 		case 0:
@@ -272,4 +288,14 @@ void standard_coms(char *check)
 		}
 		general_hash();
 	}
+}
+
+/*
+ * If we need to add a function to
+ * the BST
+ */
+void add_fun(char *input)
+{
+	hash_func(input);
+	add_to_bst();
 }

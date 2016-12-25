@@ -16,6 +16,8 @@
 /* 
  * Checks to make sure the code is
  * syntaxtically correct
+ *
+ * and change the whitespace characters to spaces
  */
 int check_layer_1(char *array)
 {
@@ -30,6 +32,8 @@ int check_layer_1(char *array)
 			++sum;
 		else if (array[i] == ')')
 			--sum;
+		else if (is_whitespace(array[i]))
+			array[i] = ' ';
 
 		if (sum < 0)
 			error("Too many )\n");
@@ -51,6 +55,7 @@ void load_program(char *array, int size)
 	char *space_ptr = strchr(array, ' ');
 	size_t space;
 	size_t bracket = 0;
+	size_t d_bracket;
 
 	if (space_ptr == NULL)
 		error("No spaces in the program\n");
@@ -61,6 +66,16 @@ void load_program(char *array, int size)
 		strncpy(space_ptr, array + bracket + 1, space);
 		standard_coms(space_ptr);
 		free(space_ptr);
+
+		if (token.type == 1 && token.repr == '+') {
+			space_ptr = strchr(array + bracket + 1, ')');
+			d_bracket = (size_t) (space_ptr - (array + bracket + 1 + space)) / sizeof(unsigned char);
+			space_ptr = (char*) calloc(d_bracket, sizeof(unsigned char));
+			strncpy(space_ptr, array + bracket + 2 + space, d_bracket);
+			add_fun(space_ptr);
+			free(space_ptr);
+			bracket = d_bracket;
+		}
 
 		space_ptr = strchr(array + bracket + 1, '(');
 
