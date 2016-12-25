@@ -1,1 +1,2 @@
-(defun test() 9 0)
+(defun add(atom a, atom b) (+ a b))
+(add 9 0)

@@ -2,6 +2,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdint.h>
 
 #include "lex.h"
 #include "error.h"
@@ -12,6 +13,7 @@ int hash;
 int val_for_i[7];
 struct AST_node code_point[SIZE_AST];
 struct BS_tree bs_functions = {-1, 0, NULL, NULL, NULL};
+
 struct multi_threaded_string {
 	char *string;
 	char *search;
@@ -168,7 +170,7 @@ void hash_func(char *input)
 
 	char *temp = input;
 
-	while (*temp != '\0') {
+	while (*temp != '(' && *temp != '\0') {
 		hash = (hash << 1) + *temp - 0x41;
 		++temp;
 	}
@@ -293,9 +295,64 @@ void standard_coms(char *check)
 /*
  * If we need to add a function to
  * the BST
+ *
+ * and to set up the funtion prototype
+ * for the code to use
+ *
+ * note: currently the code will not allow
+ * past a certain amount of values being
+ * passed to the function
  */
 void add_fun(char *input)
 {
+	char *ptr1 = strchr(input, '(');
+	char *ptr2 = strchr(ptr1, ' ');
+	char *ptr3;
+	char *names_of_vars[sizeof(size_t) * 8];
+	size_t size;
+	size_t atom_or_list = 0;
+	size_t i = 0;
+
+	++ptr1;
+
+	while (ptr1 != NULL && ptr2 != NULL) {
+		size = (size_t) (ptr2 - (ptr1)) / sizeof(unsigned char);
+		ptr3 = (char*) calloc(size, sizeof(unsigned char));
+		strncpy(ptr3, ptr1, size);
+
+		if (strcmp(ptr3, "list") == 0)
+			atom_or_list = (size_t) (atom_or_list << 1) | 0x01;
+		else if (strcmp(ptr3, "atom") == 0)
+			atom_or_list = (size_t) (atom_or_list << 1) | 0x00;
+		else
+			error("Improper function definition");
+		
+		free(ptr3);
+
+		ptr1 = strchr(ptr1, ',');
+
+		if (ptr1 == NULL) {
+			ptr1 = strchr(input, ')');
+			size = (size_t) (ptr1 - (ptr2)) / sizeof(unsigned char) + 1;
+			ptr1 = NULL;
+			goto end_of_while_loop;
+		}
+
+		while (is_whitespace(*(++ptr1)));
+
+		size = (size_t) (ptr1 - (ptr2 + 1)) / sizeof(unsigned char);
+
+end_of_while_loop:
+		ptr3 = (char*) calloc(size - 2, sizeof(unsigned char));
+		strncpy(ptr3, ptr2 + 1, size - 2);
+		names_of_vars[i++] = ptr3;
+
+		if (ptr1 == NULL)
+			break;
+
+		ptr2 = strchr(ptr1, ' ');
+	}
+
 	hash_func(input);
 	add_to_bst();
 }

@@ -11,15 +11,13 @@
 #include "lex.h"
 #include "error.h"
 
-#define ARRAY_SIZE 1000
+#define ARRAY_SIZE	1000
 
 /* 
  * Checks to make sure the code is
  * syntaxtically correct
- *
- * and change the whitespace characters to spaces
  */
-int check_layer_1(char *array)
+void check_layer_1(char *array)
 {
 	int i = 0;
 	int sum = 0;
@@ -32,8 +30,6 @@ int check_layer_1(char *array)
 			++sum;
 		else if (array[i] == ')')
 			--sum;
-		else if (is_whitespace(array[i]))
-			array[i] = ' ';
 
 		if (sum < 0)
 			error("Too many )\n");
@@ -43,14 +39,12 @@ int check_layer_1(char *array)
 
 	if (sum != 0)
 		error("Improper syntax missing ( or ) in your program\n");
-
-	return i;
 }
 
 /*
  * Loads the program into the ADT
  */
-void load_program(char *array, int size)
+void load_program(char *array)
 {
 	char *space_ptr = strchr(array, ' ');
 	size_t space;
@@ -91,19 +85,41 @@ void load_program(char *array, int size)
 int main()
 {
 	FILE* file_point;
-	char buffer[ARRAY_SIZE];
+	char temp;
+	char program[ARRAY_SIZE];
+	char *program_ptr = program;
+	int whitespace_count = 0;
 
 	file_point = fopen("test.lisp", "r");
 	if (file_point == NULL)
 		error("File could not be opened for reading\n");
 
-	while (fgets(buffer, ARRAY_SIZE, file_point) != NULL)
-		printf("%s",buffer);
+	while ((temp = (char) fgetc(file_point)) != EOF) {
+		if (is_whitespace(temp))
+			++whitespace_count;
+		else
+			whitespace_count = 0;
+
+		// Changes whitespaces to spaces for easier processing
+		if (whitespace_count == 0)
+			*program_ptr = temp;
+		else if (whitespace_count == 1)
+			*program_ptr = ' ';
+		else
+			continue;
+
+		++program_ptr;
+	}
+
+	++program_ptr;
+	*program_ptr = '\0';
 
 	fclose(file_point);
 
-	int size = check_layer_1(buffer);
-	load_program(buffer, size);
+	printf("\n%s\n", program);
+
+	check_layer_1(program);
+	load_program(program);
 
 	return 0;
 }
