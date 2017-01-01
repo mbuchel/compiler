@@ -6,6 +6,7 @@
  */
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
 // Datatypes for the compiler use
 #include "lex.h"
@@ -42,11 +43,29 @@ void check_layer_1(char *array)
 }
 
 /*
- * Loads the program into the ADT
+ * Layer to check if the function is finished
+ */
+void check_function_layer(char *fun, uint8_t *val)
+{
+	char *temp = strchr(fun,')');
+	
+	if (strchr(fun, '(') < temp) {
+		++(*val);
+	} else {
+		for (; *temp == ')' && *val >= 0; --(*val), ++temp);
+	}
+}
+
+/*
+ * Loads the program into the AST
  */
 void load_program(char *array)
 {
 	char *space_ptr = strchr(array, ' ');
+
+	uint8_t part_fun = 0;
+	uint8_t nested = 0;
+
 	size_t space;
 	size_t bracket = 0;
 	size_t d_bracket;
@@ -58,10 +77,21 @@ void load_program(char *array)
 		space = (size_t) (space_ptr - (array + bracket + 1)) / sizeof(unsigned char);
 		space_ptr = (char*) calloc(space, sizeof(unsigned char));
 		strncpy(space_ptr, array + bracket + 1, space);
-		standard_coms(space_ptr);
-		free(space_ptr);
+		
+		if (!part_fun) {
+			standard_coms(space_ptr);
+			free(space_ptr);
+		} else {
+			user_coms(space_ptr, &nested);
+			free(space_ptr);
+
+			check_function_layer(array + bracket + 1, &nested);
+		}
 
 		if (token.type == 1 && token.repr == '+') {
+			if (part_fun)
+				error("Defun called in a defun\n");
+
 			space_ptr = strchr(array + bracket + 1, ')');
 			d_bracket = (size_t) (space_ptr - (array + bracket + 1 + space)) / sizeof(unsigned char);
 			space_ptr = (char*) calloc(d_bracket, sizeof(unsigned char));
@@ -69,6 +99,8 @@ void load_program(char *array)
 			add_fun(space_ptr);
 			free(space_ptr);
 			bracket = d_bracket;
+			
+			part_fun = 1;
 		}
 
 		space_ptr = strchr(array + bracket + 1, '(');

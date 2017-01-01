@@ -7,11 +7,12 @@
 #include "lex.h"
 #include "error.h"
 
-_token token;
+struct token token = {0x00, 0x00};
 int counter = 0;
 int hash;
+int keep_hash;
 int val_for_i[7];
-struct AST_node code_point[SIZE_AST];
+struct AST_node code_point[SIZE_AST] = {0x00, 0x00, NULL, NULL};
 struct BS_tree bs_functions = {-1, 0, NULL, NULL, NULL};
 
 struct multi_threaded_string {
@@ -30,11 +31,6 @@ short is_whitespace(char check)
 	default:
 		return 0;
 	}
-}
-
-void add_to_AST()
-{
-	//TODO: add to abstract syntax tree
 }
 
 void add_to_bst()
@@ -310,21 +306,26 @@ void add_fun(char *input)
 	char *ptr3;
 	char *names_of_vars[sizeof(size_t) * 8];
 	size_t size;
-	size_t atom_or_list = 0;
 	size_t i = 0;
+	struct AST_node *ptr = &code_point[hash];
 
 	++ptr1;
 
+	if (code_point[hash].hash_val != 0)
+		error("Duplicate hash for function\n");
+
 	while (ptr1 != NULL && ptr2 != NULL) {
+		ptr->left = calloc(1, sizeof(struct AST_node));
+		ptr = ptr->left;
 		size = (size_t) (ptr2 - (ptr1)) / sizeof(unsigned char);
 		ptr3 = (char*) calloc(size, sizeof(unsigned char));
 		strncpy(ptr3, ptr1, size);
 
-		if (strcmp(ptr3, "list") == 0)
-			atom_or_list = (size_t) (atom_or_list << 1) | 0x01;
-		else if (strcmp(ptr3, "atom") == 0)
-			atom_or_list = (size_t) (atom_or_list << 1) | 0x00;
-		else
+		if (strcmp(ptr3, "list") == 0) {
+			ptr->data = 0x01;
+		} else if (strcmp(ptr3, "atom") == 0) {
+			ptr->data = 0x00;
+		} else
 			error("Improper function definition");
 		
 		free(ptr3);
@@ -355,4 +356,36 @@ end_of_while_loop:
 
 	hash_func(input);
 	add_to_bst();
+
+	code_point[hash].hash_val = hash;
+
+	keep_hash = hash;
+}
+
+/*
+ * Adds for the user
+ * functions the code
+ */
+void user_coms(char *check, uint8_t *nested)
+{
+	struct AST_node *temp = &code_point[keep_hash];
+	standard_coms(check);
+	
+	// Moves down the program in linear fashion
+	while(temp->right != NULL)
+		temp = temp->right;
+
+	if (*nested) {
+		temp = temp->left;
+		
+		while(temp->right != NULL)
+			temp = temp->right;
+	}
+	
+	/*
+	 * Adds to the program, left is
+	 * parameters and right is functions
+	 */
+	temp->right = calloc(1, sizeof(struct AST_node));
+	temp->right->hash_val = hash;
 }
