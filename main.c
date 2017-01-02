@@ -48,6 +48,7 @@ void check_layer_1(char *array)
 void check_function_layer(char *fun, uint8_t *val)
 {
 	char *temp = strchr(fun,')');
+	printf(fun);
 	
 	if (strchr(fun, '(') < temp) {
 		++(*val);
@@ -78,15 +79,18 @@ void load_program(char *array)
 		space_ptr = (char*) calloc(space, sizeof(unsigned char));
 		strncpy(space_ptr, array + bracket + 1, space);
 		
-		if (!part_fun) {
+		/*
+		 * TODO: deal with functions like
+		 * (+ 9 (* 0 3)), potentially
+		 * rewrite check_function_layer
+		 * function
+		 */
+		if (!part_fun)
 			standard_coms(space_ptr);
-			free(space_ptr);
-		} else {
+		else
 			user_coms(space_ptr, &nested);
-			free(space_ptr);
-
-			check_function_layer(array + bracket + 1, &nested);
-		}
+		
+		free(space_ptr);
 
 		if (token.type == 1 && token.repr == '+') {
 			if (part_fun)

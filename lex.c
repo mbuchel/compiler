@@ -338,7 +338,6 @@ void add_fun(char *input)
 		ptr3 = (char*) calloc(size, sizeof(unsigned char));
 		strncpy(ptr3, ptr2, size);
 		ptr->name = ptr3;
-		printf("%s\n", ptr3);
 
 		if (*ptr1 == ')')
 			break;
