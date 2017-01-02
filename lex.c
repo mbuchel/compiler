@@ -12,7 +12,7 @@ int counter = 0;
 int hash;
 int keep_hash;
 int val_for_i[7];
-struct AST_node code_point[SIZE_AST] = {0x00, 0x00, NULL, NULL};
+struct AST_node code_point[SIZE_AST] = {0x00, 0x00, NULL, NULL, NULL};
 struct BS_tree bs_functions = {-1, 0, NULL, NULL, NULL};
 
 struct multi_threaded_string {
@@ -305,15 +305,18 @@ void add_fun(char *input)
 	char *ptr2 = strchr(ptr1, ' ');
 	char *ptr3;
 	size_t size;
-	struct AST_node *ptr = &code_point[hash];
+	struct AST_node *ptr;
 
+	code_point[hash].left = calloc(1, sizeof(struct AST_node));
+	ptr = code_point[hash].left;
+	
 	++ptr1;
 
 	if (code_point[hash].hash_val != 0)
 		error("Duplicate hash for function\n");
 
 	while (ptr1 != NULL && ptr2 != NULL) {
-		ptr->left = (struct AST_node*) calloc(1, sizeof(struct AST_node));
+		ptr->left = calloc(1, sizeof(struct AST_node));
 		ptr = ptr->left;
 		size = (size_t) (ptr2 - ptr1) / sizeof(unsigned char);
 		ptr3 = (char*) calloc(size, sizeof(unsigned char));
@@ -325,7 +328,7 @@ void add_fun(char *input)
 			ptr->data = 0x00;
 		} else
 			error("Improper function definition\n");
-		
+
 		free(ptr3);
 
 		++ptr2;
@@ -368,12 +371,16 @@ void user_coms(char *check, uint8_t *nested)
 	while(temp->right != NULL)
 		temp = temp->right;
 
-	if (*nested) {
-		temp = temp->left;
-		
-		while(temp->right != NULL)
-			temp = temp->right;
-	}
+	/*
+	 * Rethink below code because not working
+	 *
+	 * if (*nested) {
+	 *	temp = temp->left;
+	 *	
+	 *	while(temp->right != NULL)
+	 *		temp = temp->right;
+	 * }
+	 */
 	
 	/*
 	 * Adds to the program, left is
@@ -381,4 +388,23 @@ void user_coms(char *check, uint8_t *nested)
 	 */
 	temp->right = calloc(1, sizeof(struct AST_node));
 	temp->right->hash_val = hash;
+
+	printf("\nLEX FUNCTION OUTPUT\nHash of function: %d\n", keep_hash);
+
+	temp = code_point[keep_hash].left;
+
+	while (temp != NULL) {
+		printf("\nName of var: %s\nType: %d (1 == list)\n", temp->name, temp->data);
+		temp = temp->left;
+	}
+
+	temp = code_point[keep_hash].right;
+
+	while (temp != NULL) {
+		if (temp->left != NULL)
+			printf("NESTED FUNCTION FOUND");
+		
+		printf("\nHash of function: %d\n", temp->hash_val);
+		temp = temp->right;
+	}
 }

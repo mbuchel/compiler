@@ -45,15 +45,17 @@ void check_layer_1(char *array)
 /*
  * Layer to check if the function is finished
  */
-void check_function_layer(char *fun, uint8_t *val)
+void check_function_layer(char *fun, int8_t *val)
 {
 	char *temp = strchr(fun,')');
-	printf(fun);
-	
+
 	if (strchr(fun, '(') < temp) {
 		++(*val);
 	} else {
-		for (; *temp == ')' && *val >= 0; --(*val), ++temp);
+		for (; *temp == ')'; --(*val), ++temp);
+
+		if (*val < 0)
+			*val = -1;
 	}
 }
 
@@ -65,7 +67,7 @@ void load_program(char *array)
 	char *space_ptr = strchr(array, ' ');
 
 	uint8_t part_fun = 0;
-	uint8_t nested = 0;
+	int8_t nested = 1;
 
 	size_t space;
 	size_t bracket = 0;
@@ -87,8 +89,15 @@ void load_program(char *array)
 		 */
 		if (!part_fun)
 			standard_coms(space_ptr);
-		else
+		else {
+			check_function_layer(array + bracket + 1, &nested);
 			user_coms(space_ptr, &nested);
+			
+			if (nested == -1) {
+				part_fun = 0;
+				nested = 1;
+			}
+		}
 		
 		free(space_ptr);
 
