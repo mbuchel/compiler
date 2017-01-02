@@ -304,9 +304,7 @@ void add_fun(char *input)
 	char *ptr1 = strchr(input, '(');
 	char *ptr2 = strchr(ptr1, ' ');
 	char *ptr3;
-	char *names_of_vars[sizeof(size_t) * 8];
 	size_t size;
-	size_t i = 0;
 	struct AST_node *ptr = &code_point[hash];
 
 	++ptr1;
@@ -315,9 +313,9 @@ void add_fun(char *input)
 		error("Duplicate hash for function\n");
 
 	while (ptr1 != NULL && ptr2 != NULL) {
-		ptr->left = calloc(1, sizeof(struct AST_node));
+		ptr->left = (struct AST_node*) calloc(1, sizeof(struct AST_node));
 		ptr = ptr->left;
-		size = (size_t) (ptr2 - (ptr1)) / sizeof(unsigned char);
+		size = (size_t) (ptr2 - ptr1) / sizeof(unsigned char);
 		ptr3 = (char*) calloc(size, sizeof(unsigned char));
 		strncpy(ptr3, ptr1, size);
 
@@ -326,30 +324,26 @@ void add_fun(char *input)
 		} else if (strcmp(ptr3, "atom") == 0) {
 			ptr->data = 0x00;
 		} else
-			error("Improper function definition");
+			error("Improper function definition\n");
 		
 		free(ptr3);
 
+		++ptr2;
 		ptr1 = strchr(ptr1, ',');
 
-		if (ptr1 == NULL) {
-			ptr1 = strchr(input, ')');
-			size = (size_t) (ptr1 - (ptr2)) / sizeof(unsigned char) + 1;
-			ptr1 = NULL;
-			goto end_of_while_loop;
-		}
-
-		while (is_whitespace(*(++ptr1)));
-
-		size = (size_t) (ptr1 - (ptr2 + 1)) / sizeof(unsigned char);
-
-end_of_while_loop:
-		ptr3 = (char*) calloc(size - 2, sizeof(unsigned char));
-		strncpy(ptr3, ptr2 + 1, size - 2);
-		names_of_vars[i++] = ptr3;
-
 		if (ptr1 == NULL)
+			ptr1 = strchr(ptr2, ')');
+
+		size = (size_t) (ptr1 - ptr2) / sizeof(unsigned char);
+		ptr3 = (char*) calloc(size, sizeof(unsigned char));
+		strncpy(ptr3, ptr2, size);
+		ptr->name = ptr3;
+		printf("%s\n", ptr3);
+
+		if (*ptr1 == ')')
 			break;
+
+		while (*(++ptr1) == ' ');
 
 		ptr2 = strchr(ptr1, ' ');
 	}

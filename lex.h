@@ -10,7 +10,8 @@ struct token {
 
 struct AST_node {
 	int hash_val;
-	size_t data;
+	uint8_t data;
+	char *name;
 
 	struct AST_node *left;
 	struct AST_node *right;
