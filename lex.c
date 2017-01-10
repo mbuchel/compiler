@@ -307,8 +307,9 @@ void add_fun(char *input)
 	size_t size;
 	struct AST_node *ptr;
 
-	code_point[hash].left = calloc(1, sizeof(struct AST_node));
-	ptr = code_point[hash].left;
+	hash_func(input);
+
+	ptr = &code_point[hash];
 	
 	++ptr1;
 
@@ -349,8 +350,9 @@ void add_fun(char *input)
 
 		ptr2 = strchr(ptr1, ' ');
 	}
+	if (code_point[hash].left == NULL)
+		error("ERROR IN MAKING NEW LEX\n");
 
-	hash_func(input);
 	add_to_bst();
 
 	code_point[hash].hash_val = hash;
@@ -372,16 +374,9 @@ void user_coms(char *check, uint8_t *nested)
 		temp = temp->right;
 
 	/*
-	 * Rethink below code because not working
-	 *
-	 * if (*nested) {
-	 *	temp = temp->left;
-	 *	
-	 *	while(temp->right != NULL)
-	 *		temp = temp->right;
-	 * }
+	 * Rethink code for adding nested functions
 	 */
-	
+
 	/*
 	 * Adds to the program, left is
 	 * parameters and right is functions
@@ -401,9 +396,6 @@ void user_coms(char *check, uint8_t *nested)
 	temp = code_point[keep_hash].right;
 
 	while (temp != NULL) {
-		if (temp->left != NULL)
-			printf("NESTED FUNCTION FOUND");
-		
 		printf("\nHash of function: %d\n", temp->hash_val);
 		temp = temp->right;
 	}

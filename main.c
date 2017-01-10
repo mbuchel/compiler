@@ -51,7 +51,7 @@ void check_function_layer(char *fun, int8_t *val)
 
 	if (strchr(fun, '(') < temp) {
 		++(*val);
-	} else {
+	} else if (*(temp+1) == ')') {
 		for (; *temp == ')'; --(*val), ++temp);
 
 		if (*val < 0)
