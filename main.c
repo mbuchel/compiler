@@ -52,11 +52,76 @@ void check_function_layer(char *fun, int8_t *val)
 	if (strchr(fun, '(') < temp) {
 		++(*val);
 	} else if (*(temp+1) == ')') {
+		// Note: loses support for (return a) )
 		for (; *temp == ')'; --(*val), ++temp);
 
 		if (*val < 0)
 			*val = -1;
+
 	}
+}
+
+/*
+ * Should generalize check_layer_1
+ * to handle doing both for a subsection
+ * and for the whole array
+ */
+void check_layer_2(char *array)
+{
+	int i = 0;
+	int sum = 1;
+
+	while (sum) {
+		if (array[i] == '(')
+			++sum;
+		else if (array[i] == ')')
+			--sum;
+
+		if (sum < 0)
+			error("Too many )\n");
+
+		++i;
+	}
+
+	// Adds to the left side of the syntax tree
+	add_to_left(array, i);
+
+	for (sum = 0; sum < i; ++sum)
+		array[sum] = ' ';
+}
+
+/*
+ * Should have a generalized version
+ * where I could call this from the
+ * main for the first reformating
+ */
+void reformat(char *array)
+{
+	char temp[ARRAY_SIZE];
+	char *temp_array = temp;
+	char *hold_array = array;
+
+	int whitespace_count = 0;
+
+	while (*(array++) != '\0') {
+		if (*array == ' ')
+			++whitespace_count;
+		else
+			whitespace_count = 0;
+
+		// Changes whitespaces to spaces for easier processing
+		if (whitespace_count == 0) {
+			*temp_array = *array;
+		} else if (whitespace_count == 1 && temp_array != temp) {
+			*temp_array = ' ';
+		} else {
+			continue;
+		}
+
+		++temp_array;
+	}
+
+	strcpy(hold_array, temp);
 }
 
 /*
@@ -81,12 +146,6 @@ void load_program(char *array)
 		space_ptr = (char*) calloc(space, sizeof(unsigned char));
 		strncpy(space_ptr, array + bracket + 1, space);
 		
-		/*
-		 * TODO: deal with functions like
-		 * (+ 9 (* 0 3)), potentially
-		 * rewrite check_function_layer
-		 * function
-		 */
 		if (!part_fun)
 			standard_coms(space_ptr);
 		else {
@@ -124,6 +183,17 @@ void load_program(char *array)
 		bracket = (size_t) (space_ptr - array) / sizeof(unsigned char);
 		space_ptr = strchr(array + bracket, ' ');
 	}
+
+	for (part_fun = 0; part_fun < strlen(array); ++part_fun) {
+		if (strncmp(&array[part_fun], "defun", 5) == 0) {
+			array[part_fun - 1] = ' ';
+			check_layer_2(&array[part_fun]);
+		}
+	}
+
+	reformat(array);
+
+	puts(array);
 }
 
 // Reads in the file
@@ -156,12 +226,9 @@ int main()
 		++program_ptr;
 	}
 
-	++program_ptr;
-	*program_ptr = '\0';
+	*program_ptr = 0x0;
 
 	fclose(file_point);
-
-	printf("\n%s\n", program);
 
 	check_layer_1(program);
 	load_program(program);

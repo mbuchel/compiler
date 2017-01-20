@@ -135,6 +135,7 @@ void general_hash()
 	 * set up the next parsing to do what is needed
 	 */
 	switch (hash) {
+	case 0x36:
 	case 0x40:
 	case 0x105:
 	case 0x10A:
@@ -162,9 +163,9 @@ void hash_func(char *input)
 	 *
 	 * to hash strings
 	 */
-	hash = 1;
-
 	char *temp = input;
+	
+	hash = 1;
 
 	while (*temp != '(' && *temp != '\0') {
 		hash = (hash << 1) + *temp - 0x41;
@@ -179,6 +180,7 @@ void hash_func(char *input)
 	hash = ((101 * hash + 7) % 997) % SIZE_AST;
 
 	switch (hash) {
+	case 0x36:
 	case 0x40:
 	case 0x105:
 	case 0x10A:
@@ -225,17 +227,18 @@ void standard_coms(char *check)
 {
 	int i;
 	int keep_i = -1;
-	char *standards[7] = {
+	char *standards[8] = {
 		"+", "-", "*", "/",
 		"set", "defun",
-		"write-line"
+		"write-line",
+		"return"
 	};
 
 	struct multi_threaded_string input[7];
 
-	pthread_t pth[7];
+	pthread_t pth[8];
 
-	for (i = 0; i < 7; ++i) {
+	for (i = 0; i < 8; ++i) {
 		usleep(1);
 		input[i].string = check;
 		input[i].search = standards[i];
@@ -244,7 +247,7 @@ void standard_coms(char *check)
 			error("Thread creation error\n");
 	}
 
-	for (i = 0; i < 7; ++i) {
+	for (i = 0; i < 8; ++i) {
 		pthread_join(pth[i], NULL);
 		if (val_for_i[i])
 			keep_i = i;
@@ -282,6 +285,10 @@ void standard_coms(char *check)
 		case 6:
 			token.type = 1;
 			token.repr = 'p';
+			break;
+		case 7:
+			token.type = 2;
+			token.repr = 'r';
 			break;
 		}
 		general_hash();
@@ -361,32 +368,15 @@ void add_fun(char *input)
 }
 
 /*
- * Adds for the user
- * functions the code
+ * Print the lexial output of the
+ * current last defined function
+ * in the program
  */
-void user_coms(char *check, uint8_t *nested)
+void print_lex()
 {
-	struct AST_node *temp = &code_point[keep_hash];
-	standard_coms(check);
-	
-	// Moves down the program in linear fashion
-	while(temp->right != NULL)
-		temp = temp->right;
-
-	/*
-	 * Rethink code for adding nested functions
-	 */
-
-	/*
-	 * Adds to the program, left is
-	 * parameters and right is functions
-	 */
-	temp->right = calloc(1, sizeof(struct AST_node));
-	temp->right->hash_val = hash;
+	struct AST_node *temp = code_point[keep_hash].left;
 
 	printf("\nLEX FUNCTION OUTPUT\nHash of function: %d\n", keep_hash);
-
-	temp = code_point[keep_hash].left;
 
 	while (temp != NULL) {
 		printf("\nName of var: %s\nType: %d (1 == list)\n", temp->name, temp->data);
@@ -398,5 +388,58 @@ void user_coms(char *check, uint8_t *nested)
 	while (temp != NULL) {
 		printf("\nHash of function: %d\n", temp->hash_val);
 		temp = temp->right;
+	}
+}
+
+/*
+ * Adds for the user
+ * functions the code
+ */
+void user_coms(char *check, uint8_t *nested)
+{
+	static uint8_t nested_function = 0;
+	struct AST_node *temp = &code_point[keep_hash];
+	standard_coms(check);
+	
+	// Moves down the program in linear fashion
+	while(temp->right != NULL)
+		temp = temp->right;
+
+	/*
+	 * If the value for nested is not 0 or -1
+	 * then that means there is a nested function
+	 * that nested function must be taken care of
+	 * by adding a flag for the next function parsed
+	 */
+	if (!(*nested == 0x00 || *nested == 0xFF))
+		++nested_function;
+	else if (*nested == 0xFF)
+		if (hash != 0x36)
+			error("Function does not end with return\n");
+
+	/*
+	 * Adds to the program, left is
+	 * parameters and right is functions
+	 */
+	temp->right = calloc(1, sizeof(struct AST_node));
+	temp->right->hash_val = hash;
+
+	/*
+	 * Makes the parameter list, a function
+	 * is treated as a parameter if the function
+	 * ends with return
+	 */
+	// temp->left = calloc(1, sizeof(struct AST_node));
+
+	print_lex();
+}
+
+void add_to_left(char *input, uint8_t end)
+{
+	char *end_fun = input + end - 1;
+
+	while (input < end_fun) {
+		input = ++strchr(input, ')');
+		// TODO: finish this function
 	}
 }
