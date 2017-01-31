@@ -1,5 +1,5 @@
-(defun add(atom a, atom b, list c)
+(defun add(a b)
 	(+ a (+ 0 9)) 
 	(- 0 8) 
-	(write-line "test") (return a))
+	(write-line "test"))
 (add 9 0)

@@ -51,6 +51,9 @@ void check_function_layer(char *fun, int8_t *val)
 
 	if (strchr(fun, '(') < temp) {
 		++(*val);
+		
+		if (*val == 1)
+			++(*val);
 	} else if (*(temp+1) == ')') {
 		// Note: loses support for (return a) )
 		for (; *temp == ')'; --(*val), ++temp);
@@ -70,6 +73,7 @@ void check_layer_2(char *array)
 {
 	int i = 0;
 	int sum = 1;
+	char *temp;
 
 	while (sum) {
 		if (array[i] == '(')
@@ -84,7 +88,9 @@ void check_layer_2(char *array)
 	}
 
 	// Adds to the left side of the syntax tree
-	add_to_left(array, i);
+	temp = calloc(i - 1, sizeof(unsigned char));
+	strncpy(temp, array, i - 1);
+	add_to_left(temp);
 
 	for (sum = 0; sum < i; ++sum)
 		array[sum] = ' ';
@@ -170,7 +176,8 @@ void load_program(char *array)
 			strncpy(space_ptr, array + bracket + 2 + space, d_bracket);
 			add_fun(space_ptr);
 			free(space_ptr);
-			bracket = d_bracket;
+			space_ptr = strchr(array + bracket + 1, ')');
+			bracket = (space_ptr - array) / sizeof(unsigned char);
 			
 			part_fun = 1;
 		}

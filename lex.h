@@ -33,6 +33,6 @@ extern short is_whitespace(char check);
 extern void standard_coms(char *check);
 extern void user_coms(char *check, uint8_t *nested);
 extern void add_fun(char *input);
-extern void add_to_left(char *input, uint8_t end);
+extern void add_to_left(char *input);
 
 #endif

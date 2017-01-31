@@ -82,6 +82,8 @@ exit_add:
 
 void user_functions()
 {
+	struct BS_tree* bs_temp;
+	
 	/*
 	 * BST for functions added already
 	 * for fast searching, switched from
@@ -90,8 +92,6 @@ void user_functions()
 	 */
 	if (bs_functions.hash == -1)
 		error("BST for hash values empty\n");
-
-	struct BS_tree* bs_temp;
 
 	if (bs_functions.hash < hash) {
 		bs_temp = bs_functions.left;
@@ -230,15 +230,14 @@ void standard_coms(char *check)
 	char *standards[8] = {
 		"+", "-", "*", "/",
 		"set", "defun",
-		"write-line",
-		"return"
+		"write-line"
 	};
 
 	struct multi_threaded_string input[7];
 
-	pthread_t pth[8];
+	pthread_t pth[7];
 
-	for (i = 0; i < 8; ++i) {
+	for (i = 0; i < 7; ++i) {
 		usleep(1);
 		input[i].string = check;
 		input[i].search = standards[i];
@@ -247,7 +246,7 @@ void standard_coms(char *check)
 			error("Thread creation error\n");
 	}
 
-	for (i = 0; i < 8; ++i) {
+	for (i = 0; i < 7; ++i) {
 		pthread_join(pth[i], NULL);
 		if (val_for_i[i])
 			keep_i = i;
@@ -309,7 +308,7 @@ void standard_coms(char *check)
 void add_fun(char *input)
 {
 	char *ptr1 = strchr(input, '(');
-	char *ptr2 = strchr(ptr1, ' ');
+	char *ptr2;
 	char *ptr3;
 	size_t size;
 	struct AST_node *ptr;
@@ -326,21 +325,9 @@ void add_fun(char *input)
 	while (ptr1 != NULL && ptr2 != NULL) {
 		ptr->left = calloc(1, sizeof(struct AST_node));
 		ptr = ptr->left;
-		size = (size_t) (ptr2 - ptr1) / sizeof(unsigned char);
-		ptr3 = (char*) calloc(size, sizeof(unsigned char));
-		strncpy(ptr3, ptr1, size);
 
-		if (strcmp(ptr3, "list") == 0) {
-			ptr->data = 0x01;
-		} else if (strcmp(ptr3, "atom") == 0) {
-			ptr->data = 0x00;
-		} else
-			error("Improper function definition\n");
-
-		free(ptr3);
-
-		++ptr2;
-		ptr1 = strchr(ptr1, ',');
+		ptr2 = ptr1;
+		ptr1 = strchr(ptr1, ' ');
 
 		if (ptr1 == NULL)
 			ptr1 = strchr(ptr2, ')');
@@ -357,6 +344,7 @@ void add_fun(char *input)
 
 		ptr2 = strchr(ptr1, ' ');
 	}
+
 	if (code_point[hash].left == NULL)
 		error("ERROR IN MAKING NEW LEX\n");
 
@@ -375,11 +363,12 @@ void add_fun(char *input)
 void print_lex()
 {
 	struct AST_node *temp = code_point[keep_hash].left;
+	struct AST_node *second;
 
 	printf("\nLEX FUNCTION OUTPUT\nHash of function: %d\n", keep_hash);
 
 	while (temp != NULL) {
-		printf("\nName of var: %s\nType: %d (1 == list)\n", temp->name, temp->data);
+		printf("\nName of var: %s\n", temp->name);
 		temp = temp->left;
 	}
 
@@ -387,6 +376,14 @@ void print_lex()
 
 	while (temp != NULL) {
 		printf("\nHash of function: %d\n", temp->hash_val);
+		second = temp->left;
+		
+		puts("Variables:");
+		while (second != NULL) {
+			puts(second->name);
+			second = second->left;
+		}
+		
 		temp = temp->right;
 	}
 }
@@ -397,14 +394,15 @@ void print_lex()
  */
 void user_coms(char *check, uint8_t *nested)
 {
-	static uint8_t nested_function = 0;
+	uint8_t nested_function = 0;
 	struct AST_node *temp = &code_point[keep_hash];
+
 	standard_coms(check);
 	
 	// Moves down the program in linear fashion
 	while(temp->right != NULL)
 		temp = temp->right;
-
+	
 	/*
 	 * If the value for nested is not 0 or -1
 	 * then that means there is a nested function
@@ -413,33 +411,149 @@ void user_coms(char *check, uint8_t *nested)
 	 */
 	if (!(*nested == 0x00 || *nested == 0xFF))
 		++nested_function;
-	else if (*nested == 0xFF)
-		if (hash != 0x36)
-			error("Function does not end with return\n");
 
 	/*
 	 * Adds to the program, left is
 	 * parameters and right is functions
+	 *
+	 * Note: if the function is nested
+	 * do not append to the regular list
 	 */
-	temp->right = calloc(1, sizeof(struct AST_node));
-	temp->right->hash_val = hash;
-
-	/*
-	 * Makes the parameter list, a function
-	 * is treated as a parameter if the function
-	 * ends with return
-	 */
-	// temp->left = calloc(1, sizeof(struct AST_node));
-
-	print_lex();
+	if (nested_function) {
+		--nested_function;
+		//TODO: make this code for if it is a function
+	} else {
+		temp->right = calloc(1, sizeof(struct AST_node));
+		temp->right->hash_val = hash;
+	}
 }
 
-void add_to_left(char *input, uint8_t end)
+/*
+ * To avoid a deeply nested helper function
+ * so I made another helper function for the
+ * helper function
+ */
+void avoid_deeply_nested_loop(char *str, struct AST_node *ptr)
 {
-	char *end_fun = input + end - 1;
+	static uint8_t nested = 0;
+	uint8_t starts_with = (*str == '(');
+	uint8_t len = strlen(str);
 
-	while (input < end_fun) {
-		input = ++strchr(input, ')');
-		// TODO: finish this function
+	if (!starts_with) {
+		--len;
+
+		while (str[len] == ')')
+			--len;
+		
+		++len;
+
+		ptr->name = calloc(len, sizeof(unsigned char));
+		strncpy(ptr->name, str, len);
+	} else if (starts_with) {
+		++nested;
+
+		while (*str == '(')
+			++str;
+
+		ptr->name = " ";
+		standard_coms(str);
+		ptr->hash_val = hash;
+	} else {
+		--nested;
 	}
+}
+
+/*
+ * Helper function to parse
+ * input into the necessary
+ * variables for the function
+ */
+void parse(char *input)
+{
+	static uint8_t level = 0;
+	uint8_t temp;
+	uint8_t space;
+	uint8_t nested = 0;
+	char *str;
+	char *temp_str;
+	struct AST_node *ptr = &code_point[keep_hash];
+
+	temp = ++level;
+	
+	while (temp--)
+		ptr = ptr->right;
+
+	space = (strchr(input, ' ') - input)/sizeof(unsigned char);
+	str = calloc(space, sizeof(unsigned char));
+	strncpy(str, input, space);
+
+	standard_coms(str);
+	free(str);
+
+	if (hash != ptr->hash_val)
+		error("Missmatch on level\n");
+
+	// Handles the nested functions
+	temp_str = strchr(input, ')');
+	str = strchr(input, '(');
+	if (str < temp_str && str != NULL)
+		nested = 1;
+
+	if (nested) {
+		while (str < temp_str) {
+			str = strchr(str, '(');
+			temp_str = strchr(temp_str, ')');
+			++str;
+			++temp_str;
+		}
+	}
+
+	--temp_str;
+
+	while(1) {
+		input = strchr(input, ' ');
+	
+		if (input == NULL || input > temp_str)
+			break;
+
+		++input;
+		space = (strchr(input, ' ') - input)/sizeof(unsigned char);
+		str = calloc(space, sizeof(unsigned char));
+		strncpy(str, input, space);
+
+		ptr->left = calloc(1, sizeof(struct AST_node));
+		ptr = ptr->left;
+		
+		if (!nested) {
+			while (str[--space] == ')');
+
+			++space;
+
+			ptr->name = calloc(space, sizeof(unsigned char));
+			strncpy(ptr->name, str, space);
+		} else {
+			avoid_deeply_nested_loop(str, ptr);
+		}
+	}
+}
+
+/*
+ * Makes the parameter list, a function
+ * is treated as a parameter
+ */
+void add_to_left(char *input)
+{
+	while (input) {
+		input = strchr(strchr(input, ')'), '(');
+		
+		if (input == NULL)
+			goto exit_add_to_left;
+
+		++input;
+
+		parse(input);
+	}
+
+exit_add_to_left:
+	print_lex();
 }
