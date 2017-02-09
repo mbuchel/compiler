@@ -316,6 +316,8 @@ void add_fun(char *input)
 	hash_func(input);
 
 	ptr = &code_point[hash];
+
+	printf("%d\n", hash);
 	
 	++ptr1;
 
@@ -339,10 +341,13 @@ void add_fun(char *input)
 
 		if (*ptr1 == ')')
 			break;
-
-		while (*(++ptr1) == ' ');
+		
+		++ptr1;
 
 		ptr2 = strchr(ptr1, ' ');
+		
+		if (ptr2 == NULL)
+			ptr2 = ptr1;
 	}
 
 	if (code_point[hash].left == NULL)
@@ -386,6 +391,8 @@ void print_lex()
 		
 		temp = temp->right;
 	}
+
+	puts("");
 }
 
 /*
@@ -419,12 +426,13 @@ void user_coms(char *check, uint8_t *nested)
 	 * Note: if the function is nested
 	 * do not append to the regular list
 	 */
-	if (nested_function) {
-		--nested_function;
-		//TODO: make this code for if it is a function
-	} else {
+	if (!nested_function) {
 		temp->right = calloc(1, sizeof(struct AST_node));
 		temp->right->hash_val = hash;
+	} else {
+		temp->left = calloc(1, sizeof(struct AST_node));
+		temp->left->right = calloc(1, sizeof(struct AST_node));
+		temp->left->right->hash_val = hash;
 	}
 }
 
@@ -496,9 +504,10 @@ void parse(char *input)
 	// Handles the nested functions
 	temp_str = strchr(input, ')');
 	str = strchr(input, '(');
-	if (str < temp_str && str != NULL)
+	if (str > temp_str && str != NULL)
 		nested = 1;
 
+	// Handles the nested functions
 	if (nested) {
 		while (str < temp_str) {
 			str = strchr(str, '(');
@@ -517,11 +526,18 @@ void parse(char *input)
 			break;
 
 		++input;
-		space = (strchr(input, ' ') - input)/sizeof(unsigned char);
+		
+		if (strchr(input, ' ') != NULL)
+			space = (strchr(input, ' ') - input)/sizeof(unsigned char);
+		else
+			space = (strchr(input, '\0') - input) / sizeof(unsigned char);
+
 		str = calloc(space, sizeof(unsigned char));
 		strncpy(str, input, space);
 
-		ptr->left = calloc(1, sizeof(struct AST_node));
+		if (ptr->left == NULL)
+			ptr->left = calloc(1, sizeof(struct AST_node));
+
 		ptr = ptr->left;
 		
 		if (!nested) {

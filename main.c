@@ -88,9 +88,10 @@ void check_layer_2(char *array)
 	}
 
 	// Adds to the left side of the syntax tree
-	temp = calloc(i - 1, sizeof(unsigned char));
-	strncpy(temp, array, i - 1);
+	temp = calloc(i, sizeof(unsigned char));
+	strncpy(temp, array, i);
 	add_to_left(temp);
+	free(temp);
 
 	for (sum = 0; sum < i; ++sum)
 		array[sum] = ' ';
@@ -143,6 +144,8 @@ void load_program(char *array)
 	size_t space;
 	size_t bracket = 0;
 	size_t d_bracket;
+
+	puts(array);
 
 	if (space_ptr == NULL)
 		error("No spaces in the program\n");
