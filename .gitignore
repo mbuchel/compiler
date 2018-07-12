@@ -1,2 +1,6 @@
-.stack/
+.stack-work/
 bin/
+cabal.sandbox.config
+.cabal-sandbox/
+stack.yaml
+*.kdev4
