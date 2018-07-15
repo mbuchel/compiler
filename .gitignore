@@ -4,3 +4,4 @@ cabal.sandbox.config
 .cabal-sandbox/
 stack.yaml
 *.kdev4
+docs/

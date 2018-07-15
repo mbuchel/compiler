@@ -1,6 +1,18 @@
-debug:
-	gcc -g3 *.c -o compiler -lpthread
+ifndef VERBOSE
+.SILENT:
+endif
+
+STACK_PATH := `stack path --local-install-root`
+
 all:
-	gcc *.c -o compiler -lpthread
+	mkdir -p bin
+	stack build
+	cp $(STACK_PATH)/bin/compiler bin/
+	echo "Made compiler"
+
+docs:
+	mkdir -p docs
+	stack exec -- haddock --html src/* --odir=docs
+
 clean:
-	rm compiler
+	rm -rf .stack-work bin dist docs

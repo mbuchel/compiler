@@ -1,5 +1,0 @@
-(defun add(a b)
-	(+ a (+ 0 9)) 
-	(- 0 b) 
-	(write-line "test"))
-(add 9 0)
