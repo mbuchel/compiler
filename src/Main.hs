@@ -13,6 +13,7 @@ This is my attempt at making a Scheme compiler, in Haskell.
 module Main where
 
 import Control.Monad
+import Data.String.Utils
 import Error
 import Evaluator
 import Parser
@@ -54,11 +55,22 @@ until_ p pr act = do
 runRepl :: IO()
 runRepl = until_ (== "quit") (readPrompt "scheme> ") evalAndPrint
 
+-- | File eval and printing.
+fileEvalAndPrint :: String -- ^ Input string.
+	-> IO ()
+fileEvalAndPrint [] = return ()
+fileEvalAndPrint program = do
+	let num = findExpr program 0 0
+	let h = take (fromInteger num) program
+	let n = strip $ drop (fromInteger num) program
+	evalAndPrint h
+	fileEvalAndPrint n
+
 -- | Main function which interacts with the user and preforms IO.
 main :: IO ()
 main = do
 	args <- getArgs
 	case length args of
 	     0 -> runRepl
-	     1 -> readFile (head args) >>= evalAndPrint
+	     1 -> readFile (head args) >>= fileEvalAndPrint
 	     otherwise -> putStrLn "Program only takes 0 or 1 arguments"

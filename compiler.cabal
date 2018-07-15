@@ -57,7 +57,7 @@ executable compiler
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.9 && <4.10, parsec, array, mtl
+  build-depends:       base >=4.9 && <4.10, parsec, array, mtl, MissingH
   
   ghc-options: -O2 -Wno-tabs
   

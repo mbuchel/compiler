@@ -200,3 +200,14 @@ readExpr :: String -- ^ Input string
 readExpr input = case parse (spaces >> parseExpr) "parser" input of
 		      Left err -> throwError $ Parser err
 		      Right val -> return val
+
+-- | Find the end of an expression.
+findExpr :: String -- ^ Input string.
+	-> Integer -- ^ Previous integer.
+	-> Integer -- ^ Nesting of expression.
+	-> Integer
+findExpr [] x _ = x
+findExpr (x : xs) n y = case x of
+			     '(' -> findExpr xs (n + 1) (y + 1)
+			     ')' -> if (y - 1) == 0 then (n + 1) else findExpr xs (n + 1) (y - 1)
+			     otherwise -> findExpr xs (n + 1) y
